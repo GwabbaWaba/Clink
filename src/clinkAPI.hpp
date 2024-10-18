@@ -5,13 +5,13 @@
 #include "clinkinterface.hpp"
 using namespace std;
 
-typedef void(*VoidFnPtr)();
+typedef void(*VoidFn)();
 #define VOID_CAST(return, args...) (VoidFnPtr)(void(*return)(args))
 
 struct ClinkAPI {
     function<void(string /*eventName*/)> registerEvent;
-    function<const vector<VoidFnPtr>&(string /*eventName*/)> getEvent;
-    function<void(string /*eventName*/, VoidFnPtr)> subscribeToEvent;
+    function<const vector<VoidFn>&(string /*eventName*/)> getEvent;
+    function<void(string /*eventName*/, VoidFn)> subscribeToEvent;
 };
 
 union UnicodeChar {

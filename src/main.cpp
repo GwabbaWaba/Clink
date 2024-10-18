@@ -1,118 +1,35 @@
-#include <math.h>
-#include <dlfcn.h>
-#include <filesystem>
-#include <fstream>
-#include <unordered_map>
 #include <iostream>
-#include <raylib.h>
 
-#include "bitsizeints.h"
-#include "main.hpp"
-#include "clinkinterface.hpp"
-#include "clinkAPI.hpp"
-
-using namespace std;
+#include <filesystem>
 namespace fs = std::filesystem;
-#define HashMap unordered_map
+
+#include "mod_registry.hpp"
+#include "event_register.hpp"
+
+#include "global.hpp"
+#include "main.hpp"
 
 
-enum ModError: u8 {
-    OK,
-    LOAD_ERROR,
-    REGISTRY_FUNCTION_ERROR,
-    NO_MOD_GENERATED
-};
-
-typedef Mod* (*CreateModFunc)();
-typedef ModInfo* (*GetModInfoFunc)();
-typedef void (*InitializeAPIFunc)(ClinkAPI*);
-struct ModData {
-    Mod* mod;
-    GetModInfoFunc getModInfo;
-    void* modHandle;
-
-    ModData(Mod* mod, GetModInfoFunc getModInfo, void* modHandle):
-        mod(mod),
-        getModInfo(getModInfo),
-        modHandle(modHandle)
-    {}
-    ~ModData() {
-        delete mod;
-        dlclose(modHandle);
-    }
-};
-
-typedef HashMap<string, ModData*> ModRegister;
-typedef HashMap<string, vector<VoidFnPtr>> EventRegister;
-class Game {
-    public:
-    Game():
-        mods(ModRegister()),
-        events(EventRegister())
-    {}
-    ~Game() {
-        for(auto &[name, data] : mods) {
-            data->mod->shutdown();
-            delete data;
-        }
-    }
-
-    ModError loadMod(string modPath, ClinkAPI* api) {
-        Mod* mod = nullptr;
-        void* modHandle = dlopen(modPath.c_str(), RTLD_LAZY);
-        if (!modHandle) {
-            std::cerr << dlerror() << std::endl;
-            return ModError::LOAD_ERROR;
-        }
-
-        CreateModFunc createMod = (CreateModFunc)dlsym(modHandle, "createMod");
-        GetModInfoFunc getModInfo = (GetModInfoFunc)dlsym(modHandle, "getModInfo");
-        InitializeAPIFunc initializeAPI = (InitializeAPIFunc)dlsym(modHandle, "initializeAPI");
-
-        if (!createMod || !getModInfo) {
-            dlclose(modHandle);
-            std::cerr << dlerror() << std::endl;
-            return ModError::REGISTRY_FUNCTION_ERROR;
-        }
-
-        // Create and use the mod
-        mod = createMod();
-        if (mod) {
-            if (initializeAPI) {
-                initializeAPI(api);
-            }
-            mod->initialize();
-            mods[getModInfo()->name] = new ModData(mod, getModInfo, modHandle);
-            return ModError::OK;
-        }
-
-        dlclose(modHandle);
-        return ModError::NO_MOD_GENERATED;
-    }
-
-    ModRegister mods;
-    EventRegister events;
-};
-
-Game game = Game();
+ModRegister mod_register = ModRegister();
+EventRegister event_register = EventRegister();
 
 int main(i32 argc, char* argv[]) {
     i32 width = 800;
     i32 height = 600;
-    InitWindow(width, height, "raylib [core] example - basic window");
-    SetTargetFPS(60);
+    raylib::InitWindow(width, height, "Clink");
+    raylib::SetTargetFPS(60);
     
     auto api = ClinkAPI {
         .registerEvent = [](string eventName) {
-            game.events[eventName] = vector<VoidFnPtr>();
+            event_register.events[eventName] = vector<VoidFn>();
         },
         .getEvent = [](string eventName) {
-            return game.events[eventName];
+            return event_register.events[eventName];
         },
-        .subscribeToEvent = [](string eventName, VoidFnPtr callback) {
-            auto event = &game.events[eventName];
+        .subscribeToEvent = [](string eventName, VoidFn callback) {
+            auto event = &event_register.events[eventName];
             event->push_back(callback);
-            std::cout << "Subscribing " << (void*)callback << " to " << eventName << std::endl;
+            std::clog << "Subscribing " << (void*)callback << " to " << eventName << std::endl;
         },
     };
     api.registerEvent("clink::update");
@@ -121,19 +38,24 @@ int main(i32 argc, char* argv[]) {
     api.registerEvent("clink::key");
 
     for(const auto &entry : fs::recursive_directory_iterator("mods/")) {
-        if(game.loadMod(entry.path(), &api) != ModError::OK) return -1;
+        if(mod_register.loadMod(entry.path(), &api) != ModError::OK) {
+            std::cerr << "Failed to load mod at: " << entry.path() << std::endl;
+            return -1;
+        }
     }
 
-    while(!WindowShouldClose()) {
-        for(auto &callback : game.events["clink::update"]) {
-            auto castedCallback = (void(*)(f32))callback;
-            castedCallback(1.0);
+    while(!raylib::WindowShouldClose()) {
+        for(auto callback : event_register.events["clink::update"]) {
+            as(fn(void, f32), callback)(1.0);
         }
 
-        for(auto &callback : game.events["clink::draw"]) {
-            auto castedCallback = (void(*)())callback;
-            castedCallback();
-        }
+        raylib::BeginDrawing();
+            ClearBackground(raylib::BLACK);
+
+            for(auto callback : event_register.events["clink::draw"]) {
+                as(fn(void), callback)();
+            }
+        raylib::EndDrawing();
     }
 
     return 0;

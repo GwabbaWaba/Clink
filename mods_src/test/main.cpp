@@ -1,9 +1,6 @@
 #include <iostream>
 #include "../../src/clinkinterface.hpp"
-#include "../../src/clinkAPI.hpp"
-#include <fstream>
-#include <sstream>
-#include "../../src/bitsizeints.h"
+#include "../../src/global.hpp"
 using namespace std;
 
 ClinkAPI* clinkAPI;
@@ -15,6 +12,7 @@ void update(f32 dt) {
 }
 
 void draw() {
+    raylib::DrawText("Hi!", 190, 200, 40, raylib::WHITE);
 }
 
 void key(UnicodeChar codepoint) {
@@ -24,9 +22,9 @@ void key(UnicodeChar codepoint) {
 class TestMod: public Mod {
 public:
     void initialize() override {
-        clinkAPI->subscribeToEvent("clink::update", (VoidFnPtr)update);
-        clinkAPI->subscribeToEvent("clink::draw", (VoidFnPtr)draw);
-        clinkAPI->subscribeToEvent("clink::key", (VoidFnPtr)key);
+        clinkAPI->subscribeToEvent("clink::update", (VoidFn)update);
+        clinkAPI->subscribeToEvent("clink::draw", (VoidFn)draw);
+        clinkAPI->subscribeToEvent("clink::key", (VoidFn)key);
 
         std::cout << "TestMod initialized!" << std::endl;
     }
