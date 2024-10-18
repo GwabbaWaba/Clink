@@ -3,7 +3,7 @@
 #include "../../src/clinkAPI.hpp"
 #include <fstream>
 #include <sstream>
-#include <gwabbacpp>
+#include "../../src/bitsizeints.h"
 using namespace std;
 
 ClinkAPI* clinkAPI;

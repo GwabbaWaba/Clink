@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gwabbacpp>
+#include "bitsizeints.h"
 
 struct World {
     f32 width;

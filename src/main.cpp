@@ -6,7 +6,7 @@
 #include <iostream>
 #include <raylib.h>
 
-#include <gwabbacpp>
+#include "bitsizeints.h"
 #include "main.hpp"
 #include "clinkinterface.hpp"
 #include "clinkAPI.hpp"
@@ -102,7 +102,7 @@ int main(i32 argc, char* argv[]) {
     InitWindow(width, height, "raylib [core] example - basic window");
     SetTargetFPS(60);
     
-    let api = ClinkAPI {
+    auto api = ClinkAPI {
         .registerEvent = [](string eventName) {
             game.events[eventName] = vector<VoidFnPtr>();
         },
@@ -110,7 +110,7 @@ int main(i32 argc, char* argv[]) {
             return game.events[eventName];
         },
         .subscribeToEvent = [](string eventName, VoidFnPtr callback) {
-            let event = &game.events[eventName];
+            auto event = &game.events[eventName];
             event->push_back(callback);
             std::cout << "Subscribing " << (void*)callback << " to " << eventName << std::endl;
         },
@@ -126,12 +126,12 @@ int main(i32 argc, char* argv[]) {
 
     while(!WindowShouldClose()) {
         for(auto &callback : game.events["clink::update"]) {
-            let castedCallback = (void(*)(f32))callback;
+            auto castedCallback = (void(*)(f32))callback;
             castedCallback(1.0);
         }
 
         for(auto &callback : game.events["clink::draw"]) {
-            let castedCallback = (void(*)())callback;
+            auto castedCallback = (void(*)())callback;
             castedCallback();
         }
     }
