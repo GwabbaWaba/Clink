@@ -1,6 +1,10 @@
 #pragma once
 
-#include "global.hpp"
+#include "bitsizeints.h"
+#include "clinkAPI.hpp"
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 enum ModError: u8 {
     OK,
@@ -24,4 +28,5 @@ class ModRegister {
     ModRegister();
     ~ModRegister();
     ModError loadMod(string modPath, ClinkAPI* api);
+    ModError loadMods(const fs::path& modDirPath, ClinkAPI* api);
 };

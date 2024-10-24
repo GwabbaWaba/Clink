@@ -1,7 +1,7 @@
 #pragma once
-
-#include <iostream>
-#include "global.hpp"
+#include <map>
+#include <vector>
+#include "bitsizeints.h"
 
 #define as(ty, expr) ((ty)expr)
 #define fn(ret, args...) ret(*)(args)
@@ -9,10 +9,9 @@
 #define print(expr) std::clog << expr
 #define println(expr) std::clog << expr << std::endl
 
+#define PLACEHOLDER_TYPE int
+
 struct World {
-    f32 width;
-    f32 height;
-    f32 depthLimit;
-    f32 heightLimit;
-    
+    std::map<std::pair<i32, i32>, std::vector<PLACEHOLDER_TYPE>> machine_grid;
+    std::map<std::pair<i32, i32>, PLACEHOLDER_TYPE> terrain_grid;
 };

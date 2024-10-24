@@ -1,9 +1,13 @@
+#include <iostream>
 #include <dlfcn.h>
 #include <unordered_map>
 
 #include "mod_registry.hpp"
-#include "global.hpp"
+#include "clinkAPI.hpp"
 #include "main.hpp"
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 ModData::ModData(Mod* mod, GetModInfoFn getModInfo, void* mod_handle):
     mod(mod),
@@ -58,4 +62,15 @@ ModError ModRegister::loadMod(string modPath, ClinkAPI* api) {
 
     dlclose(mod_handle);
     return ModError::NO_MOD_GENERATED;
+}
+
+ModError ModRegister::loadMods(const fs::path& modDirPath, ClinkAPI* api) {
+    for(const auto &entry : fs::recursive_directory_iterator(modDirPath)) {
+        auto result = this->loadMod(entry.path(), api);
+        if(result != ModError::OK) {
+            std::cerr << "Failed to load mod at: " << entry.path() << std::endl;
+            return result;
+        }
+    }
+    return ModError::OK;
 }

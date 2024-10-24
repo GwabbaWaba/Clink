@@ -1,6 +1,13 @@
 #include <iostream>
 #include "../../src/clinkinterface.hpp"
-#include "../../src/global.hpp"
+#include "../../src/clinkAPI.hpp"
+#include "../../src/bitsizeints.h"
+
+#include <math.h>
+namespace raylib {
+    #include <raylib.h>
+    #include <raymath.h>
+}
 using namespace std;
 
 ClinkAPI* clinkAPI;
