@@ -1,4 +1,10 @@
-all: out mods
+all: ./bin ./mods out mods
+
+./bin:
+	mkdir -p ./bin
+./mods:
+	mkdir -p ./mods
+
 
 test_mod=mods/test.so
 mods: $(test_mod)
