@@ -1,10 +1,11 @@
 #pragma once
 
 #include "clinkAPI.hpp"
+using std::string;
 
 class EventRegister {
     public:
-    unordered_map<string, vector<VoidFn>> events;
+    std::unordered_map<string, std::vector<VoidFn>> events;
 
     EventRegister();
 };

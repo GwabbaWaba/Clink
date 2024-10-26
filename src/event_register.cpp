@@ -1,5 +1,6 @@
 #include "event_register.hpp"
+using std::string;
 
 EventRegister::EventRegister():
-    events(unordered_map<string, vector<VoidFn>>())
+    events(std::unordered_map<string, std::vector<VoidFn>>())
 {}

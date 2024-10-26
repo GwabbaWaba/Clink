@@ -1,7 +1,9 @@
+#include <filesystem>
 #include <iostream>
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 
 #include "render.hpp"
 #include "mod_registry.hpp"
@@ -12,26 +14,21 @@ namespace fs = std::filesystem;
 #include "main.hpp"
 #include "render.hpp"
 
-namespace raylib {
-    #include <raylib.h>
-}
+namespace rl = raylib;
 
-namespace zig {
-    #include "zig.h"
-}
-
+// #include "zig.h"
 
 ModRegister mod_register = ModRegister();
 EventRegister event_register = EventRegister();
 
 int main(i32 argc, char* argv[]) {
-    raylib::SetConfigFlags(raylib::FLAG_WINDOW_RESIZABLE);
-    raylib::InitWindow(
-        raylib::GetMonitorWidth(raylib::GetCurrentMonitor()),
-        raylib::GetMonitorHeight(raylib::GetCurrentMonitor()),
+    rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
+    rl::InitWindow(
+        rl::GetMonitorWidth(rl::GetCurrentMonitor()),
+        rl::GetMonitorHeight(rl::GetCurrentMonitor()),
         "Clink"
     );
-    raylib::SetTargetFPS(60);
+    rl::SetTargetFPS(60);
     
     auto api = ClinkAPI {
         .registerEvent = [](string eventName) {
@@ -53,112 +50,108 @@ int main(i32 argc, char* argv[]) {
 
     mod_register.loadMods("./mods", &api);
 
-    raylib::Image img = raylib::GenImageChecked(
+    rl::Image img = rl::GenImageChecked(
         64,
         64,
         32,
         32,
-        raylib::BLACK,
-        raylib::DARKGRAY
+        rl::BLACK,
+        rl::DARKGRAY
     );
-    raylib::Texture2D background_texture = LoadTextureFromImage(img);
-    raylib::UnloadImage(img);
+    rl::Texture2D background_texture = LoadTextureFromImage(img);
+    rl::UnloadImage(img);
 
-    int boxCount = 0;
-    raylib::Rectangle boxes[MAX_BOXES] = { 0 };
-    SetupBoxes(boxes, &boxCount);
+    vector<rl::Rectangle> boxes = vector<rl::Rectangle>();
+    SetupBoxes(boxes, 10);
 
-    raylib::RenderTexture light_mask = raylib::LoadRenderTexture(raylib::GetScreenWidth(), raylib::GetScreenHeight());
+    rl::RenderTexture light_mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight());
 
-    int next_light = 0;
-    
     bool show_lines = false;
 
-    while(!raylib::WindowShouldClose()) {
+    while(!rl::WindowShouldClose()) {
         for(auto callback : event_register.events["clink::update"]) {
             as(fn(void, f32), callback)(1.0);
         }
 
         // Make a new light
-        if (raylib::IsMouseButtonPressed(raylib::MOUSE_BUTTON_RIGHT) && (next_light < MAX_LIGHTS))
+        if (rl::IsMouseButtonPressed(rl::MOUSE_BUTTON_RIGHT))
         {
-            SetupLight(next_light, raylib::GetMousePosition().x, raylib::GetMousePosition().y, 200);
-            next_light++;
+            addLight(rl::GetMousePosition().x, rl::GetMousePosition().y, 200);
         }
 
         // Toggle debug info
-        if (raylib::IsKeyPressed(raylib::KEY_F1))
+        if (rl::IsKeyPressed(rl::KEY_F1))
             show_lines = !show_lines;
 
         // Update the lights and keep track if any were dirty so we know if we need to update the master light mask
         bool dirty_lights = false;
-        for (int i = 0; i < MAX_LIGHTS; i++)
+        for (int i = 0; i < lights.size(); i++)
         {
-            dirty_lights = UpdateLight(i, boxes, boxCount) || dirty_lights;
+            dirty_lights = UpdateLight(i, boxes) || dirty_lights;
         }
 
         // Update the light mask
         if (dirty_lights)
         {
             // Build up the light mask
-            raylib::BeginTextureMode(light_mask);
+            rl::BeginTextureMode(light_mask);
             
-                raylib::ClearBackground(raylib::BLACK);
+                rl::ClearBackground(rl::BLACK);
 
                 // Force the blend mode to only set the alpha of the destination
-                raylib::rlSetBlendFactors(RLGL_SRC_ALPHA, RLGL_SRC_ALPHA, RLGL_MIN);
-                raylib::rlSetBlendMode(raylib::BLEND_CUSTOM);
+                rl::rlSetBlendFactors(RLGL_SRC_ALPHA, RLGL_SRC_ALPHA, RLGL_MIN);
+                rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
                 // Merge in all the light masks
-                for (int i = 0; i < MAX_LIGHTS; i++)
+                for (int i = 0; i < lights.size(); i++)
                 {
                     if (lights[i].active)
                         DrawTextureRec(
                             lights[i].mask.texture,
-                            raylib::Rectangle{ 0, 0, as(float, raylib::GetScreenWidth()), -as(float, raylib::GetScreenHeight()) },
-                            raylib::Vector2Zero(),
-                            raylib::WHITE
+                            rl::Rectangle{ 0, 0, as(float, rl::GetScreenWidth()), -as(float, rl::GetScreenHeight()) },
+                            rl::Vector2Zero(),
+                            rl::WHITE
                         );
                 }
 
-                raylib::rlDrawRenderBatchActive();
+                rl::rlDrawRenderBatchActive();
 
                 // Go back to normal blend
-                raylib::rlSetBlendMode(raylib::BLEND_ALPHA);
-            raylib::EndTextureMode();
+                rl::rlSetBlendMode(rl::BLEND_ALPHA);
+            rl::EndTextureMode();
         }
 
         
-        raylib::BeginDrawing();
+        rl::BeginDrawing();
 
-            raylib::ClearBackground(raylib::BLACK);
+            rl::ClearBackground(rl::BLACK);
             
             // Draw the tile background
-            raylib::DrawTextureRec(
+            rl::DrawTextureRec(
                 background_texture,
-                raylib::Rectangle{ 0, 0, (float)raylib::GetScreenWidth(), (float)raylib::GetScreenHeight() },
-                raylib::Vector2Zero(),
-                raylib::WHITE
+                rl::Rectangle{ 0, 0, (float)rl::GetScreenWidth(), (float)rl::GetScreenHeight() },
+                rl::Vector2Zero(),
+                rl::WHITE
             );
             
             // Overlay the shadows from all the lights
-            raylib::DrawTextureRec(
+            rl::DrawTextureRec(
                 light_mask.texture,
-                raylib::Rectangle{ 0, 0, as(float, raylib::GetScreenWidth()), -as(float, raylib::GetScreenHeight()) },
-                raylib::Vector2Zero(),
-                raylib::WHITE
+                rl::Rectangle{ 0, 0, as(float, rl::GetScreenWidth()), -as(float, rl::GetScreenHeight()) },
+                rl::Vector2Zero(),
+                rl::WHITE
             );
 
 
             // Draw the lights
-            for (int i = 0; i < MAX_LIGHTS; i++)
+            for (int i = 0; i < lights.size(); i++)
             {
                 if (lights[i].active)
                     DrawCircle(
                         as(int, lights[i].position.x),
                         as(int, lights[i].position.y),
                         10,
-                        (i == 0)? raylib::YELLOW : raylib::WHITE
+                        (i == 0)? rl::YELLOW : rl::WHITE
                     );
             }
 
@@ -166,35 +159,35 @@ int main(i32 argc, char* argv[]) {
             {
                 for (int s = 0; s < lights[0].shadowCount; s++)
                 {
-                    raylib::DrawTriangleFan(lights[0].shadows[s].vertices, 4, raylib::DARKPURPLE);
+                    rl::DrawTriangleFan(lights[0].shadows[s].vertices, 4, rl::DARKPURPLE);
                 }
 
-                for (int b = 0; b < boxCount; b++)
+                for (int b = 0; b < boxes.size(); b++)
                 {
-                    if (raylib::CheckCollisionRecs(boxes[b],lights[0].bounds))
-                        raylib::DrawRectangleRec(boxes[b], raylib::PURPLE);
+                    if (rl::CheckCollisionRecs(boxes[b],lights[0].bounds))
+                        rl::DrawRectangleRec(boxes[b], rl::PURPLE);
 
-                    raylib::DrawRectangleLines(
+                    rl::DrawRectangleLines(
                         as(int, boxes[b].x),
                         as(int, boxes[b].y),
                         as(int, boxes[b].width),
                         as(int, boxes[b].height),
-                        raylib::DARKBLUE
+                        rl::DARKBLUE
                     );
                 }
 
-                raylib::DrawText("(F1) Hide Shadow Volumes", 10, 50, 10, raylib::GREEN);
+                rl::DrawText("(F1) Hide Shadow Volumes", 10, 50, 10, rl::GREEN);
             }
             else
             {
-                raylib::DrawText("(F1) Show Shadow Volumes", 10, 50, 10, raylib::GREEN);
+                rl::DrawText("(F1) Show Shadow Volumes", 10, 50, 10, rl::GREEN);
             }
 
             
             for(auto callback : event_register.events["clink::draw"]) {
                 as(fn(void), callback)();
             }
-        raylib::EndDrawing();
+        rl::EndDrawing();
     }
 
     return 0;

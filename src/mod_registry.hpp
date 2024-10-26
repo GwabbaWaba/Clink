@@ -5,6 +5,7 @@
 
 #include <filesystem>
 namespace fs = std::filesystem;
+using std::string;
 
 enum ModError: u8 {
     OK,
@@ -23,10 +24,10 @@ struct ModData {
 };
 class ModRegister {
     public:
-    unordered_map<string, ModData*> mods;
+    std::unordered_map<string, ModData*> mods;
 
     ModRegister();
     ~ModRegister();
-    ModError loadMod(string modPath, ClinkAPI* api);
-    ModError loadMods(const fs::path& modDirPath, ClinkAPI* api);
+    ModError loadMod(fs::path mod_path, ClinkAPI* api);
+    ModError loadMods(const fs::path& mod_dir_path, ClinkAPI* api);
 };

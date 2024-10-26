@@ -1,16 +1,13 @@
 #pragma once
 
 #include <vector>
-#include <math.h>
-namespace raylib {
-    #include <raylib.h>
-    #include <raymath.h>
-    #include <rlgl.h>
-}
+
+#include "raylib.h"
+
 #include "bitsizeints.h"
 
 // Custom Blend Modes
-#define RLGL_SRC_ALPHA /*0x000302*/ 0x0000ff
+#define RLGL_SRC_ALPHA 0x000302
 #define RLGL_MIN       0x008007
 #define RLGL_MAX       0x008008
 
@@ -35,7 +32,7 @@ struct LightInfo {
 
 extern vector<LightInfo> lights;
 
-void SetupLight(int slot, float x, float y, float radius);
-bool UpdateLight(int slot, raylib::Rectangle* boxes, int count);
+void addLight(float x, float y, float radius);
+bool UpdateLight(int slot, vector<raylib::Rectangle>& boxes);
 void MoveLight(int slot, float x, float y);
-void SetupBoxes(raylib::Rectangle *boxes, int *count);
+void SetupBoxes(vector<raylib::Rectangle>& boxes, int count);

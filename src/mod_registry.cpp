@@ -8,6 +8,7 @@
 
 #include <filesystem>
 namespace fs = std::filesystem;
+using std::string;
 
 ModData::ModData(Mod* mod, GetModInfoFn getModInfo, void* mod_handle):
     mod(mod),
@@ -20,7 +21,7 @@ ModData::~ModData() {
 }
 
 ModRegister::ModRegister():
-    mods(unordered_map<string, ModData*>())
+    mods(std::unordered_map<string, ModData*>())
 {}
 ModRegister::~ModRegister() {
     for(auto &[name, data] : mods) {
@@ -31,11 +32,11 @@ ModRegister::~ModRegister() {
 
 typedef Mod* (*CreateModFunc)();
 typedef void (*InitializeAPIFunc)(ClinkAPI*);
-ModError ModRegister::loadMod(string modPath, ClinkAPI* api) {
+ModError ModRegister::loadMod(fs::path mod_path, ClinkAPI* api) {
     Mod* mod = nullptr;
-    void* mod_handle = dlopen(modPath.c_str(), RTLD_LAZY);
+    void* mod_handle = dlopen(mod_path.c_str(), RTLD_LAZY);
     if (!mod_handle) {
-        println(dlerror());
+        debug::println(dlerror());
         return ModError::LOAD_ERROR;
     }
 
@@ -45,7 +46,7 @@ ModError ModRegister::loadMod(string modPath, ClinkAPI* api) {
 
     if (!createMod || !getModInfo) {
         dlclose(mod_handle);
-        println(dlerror());
+        debug::println(dlerror());
         return ModError::REGISTRY_FUNCTION_ERROR;
     }
 
@@ -64,8 +65,8 @@ ModError ModRegister::loadMod(string modPath, ClinkAPI* api) {
     return ModError::NO_MOD_GENERATED;
 }
 
-ModError ModRegister::loadMods(const fs::path& modDirPath, ClinkAPI* api) {
-    for(const auto &entry : fs::recursive_directory_iterator(modDirPath)) {
+ModError ModRegister::loadMods(const fs::path& mod_dir_path, ClinkAPI* api) {
+    for(const auto &entry : fs::recursive_directory_iterator(mod_dir_path)) {
         auto result = this->loadMod(entry.path(), api);
         if(result != ModError::OK) {
             std::cerr << "Failed to load mod at: " << entry.path() << std::endl;

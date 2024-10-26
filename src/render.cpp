@@ -1,12 +1,16 @@
 #include <iostream>
-#include "render.hpp"
-namespace rl = raylib;
 
+#include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
+
+#include "render.hpp"
 #include "main.hpp"
 #include "bitsizeints.h"
 
+namespace rl = raylib;
 
-LightInfo lights[MAX_LIGHTS] = { 0 };
+vector<LightInfo> lights = vector<LightInfo>();
 
 // Move a light and mark it as dirty so that we update it's mask next frame
 void MoveLight(int slot, float x, float y)
@@ -24,8 +28,6 @@ void MoveLight(int slot, float x, float y)
 // It takes the edge and projects it back by the light radius and turns it into a quad
 void ComputeShadowVolumeForEdge(int slot, rl::Vector2 sp, rl::Vector2 ep)
 {
-    if (lights[slot].shadowCount >= MAX_SHADOWS) return;
-
     float extension = lights[slot].outerRadius*2;
 
     rl::Vector2 spVector = Vector2Normalize(Vector2Subtract(sp, lights[slot].position));
@@ -82,24 +84,29 @@ void DrawLightMask(int slot)
 
 
 // Setup a light
-void SetupLight(int slot, float x, float y, float radius)
+void addLight(float x, float y, float radius)
 {
-    lights[slot].active = true;
-    lights[slot].valid = false;  // The light must prove it is valid
-    lights[slot].mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight());
-    lights[slot].outerRadius = radius;
+    LightInfo light = LightInfo {
+        .active = true,
+        .valid = false, // The light must prove it is valid
+        .mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight()),
+        .outerRadius = radius,
+        .bounds = {
+            .width = radius*2,
+            .height = radius*2
+        }
+    };
+    usize index = lights.size();
+    lights.push_back(light);
 
-    lights[slot].bounds.width = radius * 2;
-    lights[slot].bounds.height = radius * 2;
-
-    MoveLight(slot, x, y);
+    MoveLight(index, x, y);
 
     // Force the render texture to have something in it
-    DrawLightMask(slot);
+    DrawLightMask(index);
 }
 
 // See if a light needs to update it's mask
-bool UpdateLight(int slot, rl::Rectangle* boxes, int count)
+bool UpdateLight(int slot, vector<rl::Rectangle>& boxes)
 {
     if (!lights[slot].active || !lights[slot].dirty) return false;
 
@@ -107,7 +114,8 @@ bool UpdateLight(int slot, rl::Rectangle* boxes, int count)
     lights[slot].shadowCount = 0;
     lights[slot].valid = false;
 
-    for (int i = 0; i < count; i++)
+
+    for (int i = 0; i < boxes.size(); i++)
     {
         // Are we in a box? if so we are not valid
         if (raylib::CheckCollisionPointRec(lights[slot].position, boxes[i])) return false;
@@ -139,11 +147,13 @@ bool UpdateLight(int slot, rl::Rectangle* boxes, int count)
         if (lights[slot].position.x > ep.x) ComputeShadowVolumeForEdge(slot, sp, ep);
 
         // The box itself
+        debug::println("TEST");
         lights[slot].shadows[lights[slot].shadowCount].vertices[0] = rl::Vector2{ boxes[i].x, boxes[i].y };
         lights[slot].shadows[lights[slot].shadowCount].vertices[1] = rl::Vector2{ boxes[i].x, boxes[i].y + boxes[i].height };
         lights[slot].shadows[lights[slot].shadowCount].vertices[2] = rl::Vector2{ boxes[i].x + boxes[i].width, boxes[i].y + boxes[i].height };
         lights[slot].shadows[lights[slot].shadowCount].vertices[3] = rl::Vector2{ boxes[i].x + boxes[i].width, boxes[i].y };
         lights[slot].shadowCount++;
+        debug::println("TEST2");
     }
 
     lights[slot].valid = true;
@@ -154,23 +164,26 @@ bool UpdateLight(int slot, rl::Rectangle* boxes, int count)
 }
 
 // Set up some boxes
-void SetupBoxes(rl::Rectangle *boxes, int *count)
+void SetupBoxes(vector<rl::Rectangle>& boxes, int count)
 {
-    boxes[0] = rl::Rectangle{ 150,80, 40, 40 };
-    boxes[1] = rl::Rectangle{ 1200, 700, 40, 40 };
-    boxes[2] = rl::Rectangle{ 200, 600, 40, 40 };
-    boxes[3] = rl::Rectangle{ 1000, 50, 40, 40 };
-    boxes[4] = rl::Rectangle{ 500, 350, 40, 40 };
+    if(count < 1) return;
+    boxes.push_back(rl::Rectangle{ 150,80, 40, 40 });
+    if(count < 2) return;
+    boxes.push_back(rl::Rectangle{ 1200, 700, 40, 40 });
+    if(count < 3) return;
+    boxes.push_back(rl::Rectangle{ 200, 600, 40, 40 });
+    if(count < 4) return;
+    boxes.push_back(rl::Rectangle{ 1000, 50, 40, 40 });
+    if(count < 5) return;
+    boxes.push_back(rl::Rectangle{ 500, 350, 40, 40 });
 
-    for (int i = 5; i < MAX_BOXES; i++)
+    for (int i = 5; i < count; i++)
     {
-        boxes[i] = rl::Rectangle{
+        boxes.push_back(rl::Rectangle{
             (float)rl::GetRandomValue(0,rl::GetScreenWidth()),
             (float)rl::GetRandomValue(0,rl::GetScreenHeight()),
             (float)rl::GetRandomValue(10,100),
             (float)rl::GetRandomValue(10,100)
-        };
+        });
     }
-
-    *count = MAX_BOXES;
 }
