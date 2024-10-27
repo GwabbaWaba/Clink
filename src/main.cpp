@@ -4,10 +4,10 @@
  *  when interfacing with c ABI, prefer standard numeric types
  */
 
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 
 #include "raylib.h"
 #include "raymath.h"
@@ -23,6 +23,7 @@
 #include "render.hpp"
 
 namespace rl = raylib;
+using namespace chrono_literals;
 
 // #include "zig.h"
 
@@ -96,9 +97,14 @@ int main(int argc, char* argv[]) {
 
     bool show_lines = false;
 
+    auto last_time = std::chrono::steady_clock::now();
+    f32 dt = 0;
+
     while(!rl::WindowShouldClose()) {
+        auto current_time = std::chrono::steady_clock::now();
+        dt = (current_time - last_time) / 1s;
         for(auto callback : event_register.events["clink::update"]) {
-            as(fn(void, f32), callback)(1.0);
+            as(fn(void, f32), callback)(dt);
         }
 
         // Make a new light
@@ -154,7 +160,7 @@ int main(int argc, char* argv[]) {
             // Draw the tile background
             rl::DrawTextureRec(
                 background_texture,
-                rl::Rectangle{ 0, 0, (float)rl::GetScreenWidth(), (float)rl::GetScreenHeight() },
+                rl::Rectangle{ 0, 0, as(float, rl::GetScreenWidth()), as(float, rl::GetScreenHeight()) },
                 rl::Vector2Zero(),
                 rl::WHITE
             );
@@ -213,6 +219,8 @@ int main(int argc, char* argv[]) {
                 as(fn(void), callback)();
             }
         rl::EndDrawing();
+
+        last_time = std::chrono::system_clock::now();
     }
 
     return 0;

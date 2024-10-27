@@ -6,7 +6,6 @@
 
 #include "render.hpp"
 #include "main.hpp"
-#include "bitsizeints.h"
 
 namespace rl = raylib;
 
@@ -58,7 +57,13 @@ void drawLightMask(LightInfo& light) {
 
         // If we are valid, then draw the light radius to the alpha mask
         if (light.valid) {
-            DrawCircleGradient((int)light.position.x, (int)light.position.y, light.outerRadius, ColorAlpha(rl::WHITE, 0), rl::WHITE);
+            DrawCircleGradient(
+                as(int, light.position.x),
+                as(int, light.position.y),
+                light.outerRadius,
+                ColorAlpha(rl::WHITE, 0),
+                rl::WHITE
+            );
         }
         
         rl::rlDrawRenderBatchActive();
@@ -69,8 +74,7 @@ void drawLightMask(LightInfo& light) {
         rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
         // Draw the shadows to the alpha mask
-        for (auto& shadow : light.shadows)
-        {
+        for (auto& shadow : light.shadows) {
             rl::DrawTriangleFan(shadow.vertices, 4, rl::WHITE);
         }
 
@@ -86,7 +90,7 @@ void drawLightMask(LightInfo& light) {
 // Setup a light
 void addLight(float x, float y, float radius)
 {
-    LightInfo light = LightInfo {
+    LightInfo light = {
         .active = true,
         .valid = false, // The light must prove it is valid
         .mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight()),
@@ -123,8 +127,8 @@ bool updateLight(LightInfo& light, vector<rl::Rectangle>& boxes)
         // Check the edges that are on the same side we are, and cast shadow volumes out from them
         
         // Top
-        rl::Vector2 sp = rl::Vector2{ box.x, box.y };
-        rl::Vector2 ep = rl::Vector2{ box.x + box.width, box.y };
+        rl::Vector2 sp = { box.x, box.y };
+        rl::Vector2 ep = { box.x + box.width, box.y };
 
         if (light.position.y > ep.y)
             computeShadowVolumeForEdge(light, sp, ep);
@@ -150,10 +154,10 @@ bool updateLight(LightInfo& light, vector<rl::Rectangle>& boxes)
         // The box itself
         light.shadows.push_back(ShadowGeometry{
             .vertices = {
-                rl::Vector2{ box.x, box.y },
-                rl::Vector2{ box.x, box.y + box.height },
-                rl::Vector2{ box.x + box.width, box.y + box.height },
-                rl::Vector2{ box.x + box.width, box.y }
+                { box.x, box.y },
+                { box.x, box.y + box.height },
+                { box.x + box.width, box.y + box.height },
+                { box.x + box.width, box.y }
             }
         });
     }
@@ -168,24 +172,13 @@ bool updateLight(LightInfo& light, vector<rl::Rectangle>& boxes)
 // Set up some boxes
 void setupBoxes(vector<rl::Rectangle>& boxes, int count)
 {
-    if(count < 1) return;
-    boxes.push_back(rl::Rectangle{ 150,80, 40, 40 });
-    if(count < 2) return;
-    boxes.push_back(rl::Rectangle{ 1200, 700, 40, 40 });
-    if(count < 3) return;
-    boxes.push_back(rl::Rectangle{ 200, 600, 40, 40 });
-    if(count < 4) return;
-    boxes.push_back(rl::Rectangle{ 1000, 50, 40, 40 });
-    if(count < 5) return;
-    boxes.push_back(rl::Rectangle{ 500, 350, 40, 40 });
-
-    for (int i = 5; i < count; i++)
+    for (int i = 0; i < count; i++)
     {
         boxes.push_back(rl::Rectangle{
-            (float)rl::GetRandomValue(0,rl::GetScreenWidth()),
-            (float)rl::GetRandomValue(0,rl::GetScreenHeight()),
-            (float)rl::GetRandomValue(10,100),
-            (float)rl::GetRandomValue(10,100)
+            as(float, rl::GetRandomValue(0,rl::GetScreenWidth())),
+            as(float, rl::GetRandomValue(0,rl::GetScreenHeight())),
+            as(float, rl::GetRandomValue(10,100)),
+            as(float, rl::GetRandomValue(10,100))
         });
     }
 }
