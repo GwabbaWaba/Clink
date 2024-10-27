@@ -2,6 +2,13 @@
  *  Code guide:
  *  use types in bitsizeints.h over standard numeric types
  *  when interfacing with c ABI, prefer standard numeric types
+ *
+ *  avoid using namespace as to upkeep clarity
+ *  instead specifically declare using for very commonly used members of the namespace
+ *  don't:
+ *  using namespace std;
+ *  do:
+ *  using std::string;
  */
 
 #include <chrono>
@@ -17,10 +24,13 @@
 #include "mod_registry.hpp"
 #include "event_register.hpp"
 
-#include "bitsizeints.h"
+#include "bitsize_ints.h"
 #include "clinkAPI.hpp"
 #include "main.hpp"
 #include "render.hpp"
+#include "exceptions.hpp"
+#include "player.hpp"
+#include "world.hpp"
 
 namespace rl = raylib;
 using namespace chrono_literals;

@@ -1,5 +1,6 @@
-# Clink
-Never try to write a game in Rust. I learned my lesson.
+# **Clink**
+## Written for c++20 and zig 0.13.0
+*Never try to write a game in Rust. I learned my lesson.*
 
 Clink is a very early indev game about automation from the very ground up.
 You will start from the bare basics of starting a fire with twigs, which will lead you into the expansive tech tree.

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bitsizeints.h"
+#include "bitsize_ints.h"
 #include "clinkAPI.hpp"
 
 #include <filesystem>
@@ -22,6 +22,7 @@ struct ModData {
     ModData(Mod* mod, GetModInfoFn getModInfo, void* mod_handle);
     ~ModData();
 };
+
 class ModRegister {
     public:
     std::unordered_map<string, ModData*> mods;

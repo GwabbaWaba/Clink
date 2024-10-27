@@ -4,7 +4,7 @@
 
 #include "raylib.h"
 
-#include "bitsizeints.h"
+#include "bitsize_ints.h"
 
 // Custom Blend Modes
 #define RLGL_SRC_ALPHA 0x000302

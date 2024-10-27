@@ -1,7 +1,7 @@
 #include <iostream>
 #include "../../src/clinkinterface.hpp"
 #include "../../src/clinkAPI.hpp"
-#include "../../src/bitsizeints.h"
+#include "../../src/bitsize_ints.h"
 
 #include <math.h>
 namespace raylib {
