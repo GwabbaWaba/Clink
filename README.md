@@ -1,5 +1,5 @@
 # **Clink**
-## Written for c++20 and zig 0.13.0
+### Written for c++20 and zig 0.13.0
 *Never try to write a game in Rust. I learned my lesson.*
 
 Clink is a very early indev game about automation from the very ground up.
