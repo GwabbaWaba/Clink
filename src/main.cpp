@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
             }
         rl::EndDrawing();
 
-        last_time = std::chrono::system_clock::now();
+        last_time = std::chrono::steady_clock::now();
     }
 
     return 0;
