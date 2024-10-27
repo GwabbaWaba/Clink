@@ -1,5 +1,13 @@
+/*
+ *  Code guide:
+ *  use types in bitsizeints.h over standard numeric types
+ *  when interfacing with c ABI, prefer standard numeric types
+ */
+
 #include <filesystem>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 
 #include "raylib.h"
 #include "raymath.h"
@@ -21,7 +29,7 @@ namespace rl = raylib;
 ModRegister mod_register = ModRegister();
 EventRegister event_register = EventRegister();
 
-int main(i32 argc, char* argv[]) {
+int main(int argc, char* argv[]) {
     rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
     rl::InitWindow(
         rl::GetMonitorWidth(rl::GetCurrentMonitor()),
@@ -31,11 +39,31 @@ int main(i32 argc, char* argv[]) {
     rl::SetTargetFPS(60);
     
     auto api = ClinkAPI {
-        .registerEvent = [](string eventName) {
-            event_register.events[eventName] = vector<VoidFn>();
+        .registerEvent = [](string event_name) {
+            auto& events = event_register.events;
+            if(events.find(event_name) == events.end()) {
+                events[event_name] = vector<VoidFn>();
+            } else {
+                std::cerr
+                    << "Duplicate event registry, errors may occur: "
+                    << event_name
+                    << std::endl;
+            }
         },
-        .getEvent = [](string eventName) {
-            return event_register.events[eventName];
+        .getEvent = [](string event_name) {
+            auto& events = event_register.events;
+            if(events.find(event_name) != events.end())
+                return events[event_name];
+
+            std::stringstream err_msg_stream = std::stringstream();
+            err_msg_stream
+                << "Access of unregistered event: "
+                << event_name;
+            
+            throw clink_exceptions::EventException(
+                clink_exceptions::EventExceptionType::invalid_access,
+                err_msg_stream.str()
+            );
         },
         .subscribeToEvent = [](string eventName, VoidFn callback) {
             auto event = &event_register.events[eventName];
@@ -62,7 +90,7 @@ int main(i32 argc, char* argv[]) {
     rl::UnloadImage(img);
 
     vector<rl::Rectangle> boxes = vector<rl::Rectangle>();
-    SetupBoxes(boxes, 10);
+    setupBoxes(boxes, 20);
 
     rl::RenderTexture light_mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight());
 
@@ -74,8 +102,7 @@ int main(i32 argc, char* argv[]) {
         }
 
         // Make a new light
-        if (rl::IsMouseButtonPressed(rl::MOUSE_BUTTON_RIGHT))
-        {
+        if (rl::IsMouseButtonPressed(rl::MOUSE_BUTTON_RIGHT)) {
             addLight(rl::GetMousePosition().x, rl::GetMousePosition().y, 200);
         }
 
@@ -85,9 +112,8 @@ int main(i32 argc, char* argv[]) {
 
         // Update the lights and keep track if any were dirty so we know if we need to update the master light mask
         bool dirty_lights = false;
-        for (int i = 0; i < lights.size(); i++)
-        {
-            dirty_lights = UpdateLight(i, boxes) || dirty_lights;
+        for(auto& light: lights) {
+            dirty_lights = updateLight(light, boxes) || dirty_lights;
         }
 
         // Update the light mask
@@ -103,15 +129,14 @@ int main(i32 argc, char* argv[]) {
                 rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
                 // Merge in all the light masks
-                for (int i = 0; i < lights.size(); i++)
-                {
-                    if (lights[i].active)
+                for(auto& light : lights) {
+                    if (light.active)
                         DrawTextureRec(
-                            lights[i].mask.texture,
+                            light.mask.texture,
                             rl::Rectangle{ 0, 0, as(float, rl::GetScreenWidth()), -as(float, rl::GetScreenHeight()) },
                             rl::Vector2Zero(),
                             rl::WHITE
-                        );
+                    );
                 }
 
                 rl::rlDrawRenderBatchActive();
@@ -144,34 +169,34 @@ int main(i32 argc, char* argv[]) {
 
 
             // Draw the lights
-            for (int i = 0; i < lights.size(); i++)
+            for (auto& light : lights)
             {
-                if (lights[i].active)
+                if (light.active)
                     DrawCircle(
-                        as(int, lights[i].position.x),
-                        as(int, lights[i].position.y),
+                        as(int, light.position.x),
+                        as(int, light.position.y),
                         10,
-                        (i == 0)? rl::YELLOW : rl::WHITE
+                        rl::WHITE
                     );
             }
 
             if (show_lines)
             {
-                for (int s = 0; s < lights[0].shadowCount; s++)
+                for (auto& shadow : lights[0].shadows)
                 {
-                    rl::DrawTriangleFan(lights[0].shadows[s].vertices, 4, rl::DARKPURPLE);
+                    rl::DrawTriangleFan(shadow.vertices, 4, rl::DARKPURPLE);
                 }
 
-                for (int b = 0; b < boxes.size(); b++)
+                for (auto& box : boxes)
                 {
-                    if (rl::CheckCollisionRecs(boxes[b],lights[0].bounds))
-                        rl::DrawRectangleRec(boxes[b], rl::PURPLE);
+                    if (rl::CheckCollisionRecs(box,lights[0].bounds))
+                        rl::DrawRectangleRec(box, rl::PURPLE);
 
                     rl::DrawRectangleLines(
-                        as(int, boxes[b].x),
-                        as(int, boxes[b].y),
-                        as(int, boxes[b].width),
-                        as(int, boxes[b].height),
+                        as(int, box.x),
+                        as(int, box.y),
+                        as(int, box.width),
+                        as(int, box.height),
                         rl::DARKBLUE
                     );
                 }

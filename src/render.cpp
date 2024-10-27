@@ -13,42 +13,42 @@ namespace rl = raylib;
 vector<LightInfo> lights = vector<LightInfo>();
 
 // Move a light and mark it as dirty so that we update it's mask next frame
-void MoveLight(int slot, float x, float y)
+void moveLight(LightInfo& light, float x, float y)
 {
-    lights[slot].dirty = true;
-    lights[slot].position.x = x; 
-    lights[slot].position.y = y;
+    light.dirty = true;
+    light.position.x = x; 
+    light.position.y = y;
 
     // update the cached bounds
-    lights[slot].bounds.x = x - lights[slot].outerRadius;
-    lights[slot].bounds.y = y - lights[slot].outerRadius;
+    light.bounds.x = x - light.outerRadius;
+    light.bounds.y = y - light.outerRadius;
 }
 
 // Compute a shadow volume for the edge
 // It takes the edge and projects it back by the light radius and turns it into a quad
-void ComputeShadowVolumeForEdge(int slot, rl::Vector2 sp, rl::Vector2 ep)
-{
-    float extension = lights[slot].outerRadius*2;
+void computeShadowVolumeForEdge(LightInfo& light, rl::Vector2 sp, rl::Vector2 ep) {
+    float extension = light.outerRadius*2;
 
-    rl::Vector2 spVector = Vector2Normalize(Vector2Subtract(sp, lights[slot].position));
+    rl::Vector2 spVector = Vector2Normalize(Vector2Subtract(sp, light.position));
     rl::Vector2 spProjection = Vector2Add(sp, Vector2Scale(spVector, extension));
 
-    rl::Vector2 epVector = Vector2Normalize(Vector2Subtract(ep, lights[slot].position));
+    rl::Vector2 epVector = Vector2Normalize(Vector2Subtract(ep, light.position));
     rl::Vector2 epProjection = Vector2Add(ep, Vector2Scale(epVector, extension));
 
-    lights[slot].shadows[lights[slot].shadowCount].vertices[0] = sp;
-    lights[slot].shadows[lights[slot].shadowCount].vertices[1] = ep;
-    lights[slot].shadows[lights[slot].shadowCount].vertices[2] = epProjection;
-    lights[slot].shadows[lights[slot].shadowCount].vertices[3] = spProjection;
-
-    lights[slot].shadowCount++;
+    light.shadows.push_back(ShadowGeometry{
+        .vertices = {
+            sp,
+            ep,
+            epProjection,
+            spProjection
+        }
+    });
 }
 
 // Draw the light and shadows to the mask for a light
-void DrawLightMask(int slot)
-{
+void drawLightMask(LightInfo& light) {
     // Use the light mask
-    rl::BeginTextureMode(lights[slot].mask);
+    rl::BeginTextureMode(light.mask);
 
         rl::ClearBackground(rl::WHITE);
 
@@ -57,8 +57,8 @@ void DrawLightMask(int slot)
         rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
         // If we are valid, then draw the light radius to the alpha mask
-        if (lights[slot].valid) {
-            DrawCircleGradient((int)lights[slot].position.x, (int)lights[slot].position.y, lights[slot].outerRadius, ColorAlpha(rl::WHITE, 0), rl::WHITE);
+        if (light.valid) {
+            DrawCircleGradient((int)light.position.x, (int)light.position.y, light.outerRadius, ColorAlpha(rl::WHITE, 0), rl::WHITE);
         }
         
         rl::rlDrawRenderBatchActive();
@@ -69,9 +69,9 @@ void DrawLightMask(int slot)
         rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
         // Draw the shadows to the alpha mask
-        for (int i = 0; i < lights[slot].shadowCount; i++)
+        for (auto& shadow : light.shadows)
         {
-            rl::DrawTriangleFan(lights[slot].shadows[i].vertices, 4, rl::WHITE);
+            rl::DrawTriangleFan(shadow.vertices, 4, rl::WHITE);
         }
 
         rl::rlDrawRenderBatchActive();
@@ -96,75 +96,77 @@ void addLight(float x, float y, float radius)
             .height = radius*2
         }
     };
-    usize index = lights.size();
-    lights.push_back(light);
-
-    MoveLight(index, x, y);
-
+    moveLight(light, x, y);
     // Force the render texture to have something in it
-    DrawLightMask(index);
+    drawLightMask(light);
+
+    lights.push_back(light);
 }
 
 // See if a light needs to update it's mask
-bool UpdateLight(int slot, vector<rl::Rectangle>& boxes)
+bool updateLight(LightInfo& light, vector<rl::Rectangle>& boxes)
 {
-    if (!lights[slot].active || !lights[slot].dirty) return false;
+    if (!light.active || !light.dirty) return false;
 
-    lights[slot].dirty = false;
-    lights[slot].shadowCount = 0;
-    lights[slot].valid = false;
+    light.dirty = false;
+    light.valid = false;
 
 
-    for (int i = 0; i < boxes.size(); i++)
+    for (auto& box : boxes)
     {
         // Are we in a box? if so we are not valid
-        if (raylib::CheckCollisionPointRec(lights[slot].position, boxes[i])) return false;
+        if (raylib::CheckCollisionPointRec(light.position, box)) return false;
 
         // If this box is outside our bounds, we can skip it
-        if (!raylib::CheckCollisionRecs(lights[slot].bounds, boxes[i])) continue;
+        if (!raylib::CheckCollisionRecs(light.bounds, box)) continue;
 
         // Check the edges that are on the same side we are, and cast shadow volumes out from them
         
         // Top
-        rl::Vector2 sp = rl::Vector2{ boxes[i].x, boxes[i].y };
-        rl::Vector2 ep = rl::Vector2{ boxes[i].x + boxes[i].width, boxes[i].y };
+        rl::Vector2 sp = rl::Vector2{ box.x, box.y };
+        rl::Vector2 ep = rl::Vector2{ box.x + box.width, box.y };
 
-        if (lights[slot].position.y > ep.y) ComputeShadowVolumeForEdge(slot, sp, ep);
+        if (light.position.y > ep.y)
+            computeShadowVolumeForEdge(light, sp, ep);
 
         // Right
         sp = ep;
-        ep.y += boxes[i].height;
-        if (lights[slot].position.x < ep.x) ComputeShadowVolumeForEdge(slot, sp, ep);
+        ep.y += box.height;
+        if (light.position.x < ep.x)
+            computeShadowVolumeForEdge(light, sp, ep);
 
         // Bottom
         sp = ep;
-        ep.x -= boxes[i].width;
-        if (lights[slot].position.y < ep.y) ComputeShadowVolumeForEdge(slot, sp, ep);
+        ep.x -= box.width;
+        if (light.position.y < ep.y)
+            computeShadowVolumeForEdge(light, sp, ep);
 
         // Left
         sp = ep;
-        ep.y -= boxes[i].height;
-        if (lights[slot].position.x > ep.x) ComputeShadowVolumeForEdge(slot, sp, ep);
+        ep.y -= box.height;
+        if (light.position.x > ep.x)
+            computeShadowVolumeForEdge(light, sp, ep);
 
         // The box itself
-        debug::println("TEST");
-        lights[slot].shadows[lights[slot].shadowCount].vertices[0] = rl::Vector2{ boxes[i].x, boxes[i].y };
-        lights[slot].shadows[lights[slot].shadowCount].vertices[1] = rl::Vector2{ boxes[i].x, boxes[i].y + boxes[i].height };
-        lights[slot].shadows[lights[slot].shadowCount].vertices[2] = rl::Vector2{ boxes[i].x + boxes[i].width, boxes[i].y + boxes[i].height };
-        lights[slot].shadows[lights[slot].shadowCount].vertices[3] = rl::Vector2{ boxes[i].x + boxes[i].width, boxes[i].y };
-        lights[slot].shadowCount++;
-        debug::println("TEST2");
+        light.shadows.push_back(ShadowGeometry{
+            .vertices = {
+                rl::Vector2{ box.x, box.y },
+                rl::Vector2{ box.x, box.y + box.height },
+                rl::Vector2{ box.x + box.width, box.y + box.height },
+                rl::Vector2{ box.x + box.width, box.y }
+            }
+        });
     }
 
-    lights[slot].valid = true;
+    light.valid = true;
 
-    DrawLightMask(slot);
+    drawLightMask(light);
 
     return true;
 }
 
 // Set up some boxes
-void SetupBoxes(vector<rl::Rectangle>& boxes, int count)
+void setupBoxes(vector<rl::Rectangle>& boxes, int count)
 {
     if(count < 1) return;
     boxes.push_back(rl::Rectangle{ 150,80, 40, 40 });
