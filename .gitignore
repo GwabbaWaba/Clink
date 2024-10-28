@@ -4,6 +4,9 @@ bin/*
 mods/*
 !mods/
 
+base_mods/*
+!base_mods/
+
 out
 
 .clangd
