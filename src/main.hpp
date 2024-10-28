@@ -79,8 +79,8 @@ namespace debug {
             << ':'
             << callsite.column()
             << ")"
+            << "\n"
             #if defined(PRETTY_LOGS)
-            << std::endl
             "\e[0;33m"
             #endif
             << val
