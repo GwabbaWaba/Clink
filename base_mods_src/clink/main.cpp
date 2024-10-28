@@ -1,8 +1,6 @@
-#include <iostream>
 #include "../../src/clinkinterface.hpp"
 #include "../../src/clinkAPI.hpp"
-#include "../../src/registry.hpp"
-#include "../../src/bitsize_ints.h"
+#include "../../src/main.hpp"
 
 #include <math.h>
 namespace raylib {
@@ -19,11 +17,11 @@ clink void initializeAPI(ClinkAPI* api) {
 class TestMod: public Mod {
 public:
     void initialize() override {
-        std::cout << "clink initialized!" << std::endl;
+        debug::println("clink initialized!");
     }
 
     void shutdown() override {
-        std::cout << "clink shut down!" << std::endl;
+        debug::println("clink shut down!");
     }
 };
 

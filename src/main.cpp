@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
         .subscribeToEvent = [&api](ModMemberNamespace event_name, VoidFn callback) {
             auto& event = api.getEventByName(event_name);
             event.push_back(callback);
-            std::clog
+            debug::print_stream()
                 << "Subscribing "
                 << (void*)callback
                 << " to "
@@ -123,7 +123,6 @@ int main(int argc, char* argv[]) {
     bool show_lines = false;
 
     f32 dt = 0;
-    debug::println("made it passed setup");
     while(!rl::WindowShouldClose()) {
         dt = rl::GetFrameTime();
         for(auto callback : api.getEvent(update_event_id)) {

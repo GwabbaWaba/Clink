@@ -2,6 +2,7 @@
 #include "../../src/clinkinterface.hpp"
 #include "../../src/clinkAPI.hpp"
 #include "../../src/registry.hpp"
+#include "../../src/main.hpp"
 #include "../../src/bitsize_ints.h"
 
 #include <math.h>
@@ -34,11 +35,11 @@ public:
         clinkAPI->subscribeToEvent(ModMemberNamespace("clink", "draw"), (VoidFn)draw);
         clinkAPI->subscribeToEvent(ModMemberNamespace("clink", "key_press"), (VoidFn)key);
 
-        std::cout << "TestMod initialized!" << std::endl;
+        debug::println("TestMod initialized!");
     }
 
     void shutdown() override {
-        std::cout << "TestMod shut down!" << std::endl;
+        debug::println("TestMod shut down!");
     }
 };
 

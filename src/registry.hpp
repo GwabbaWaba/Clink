@@ -12,7 +12,7 @@ class RegistryNamespace {
     virtual constexpr bool operator ==(const RegistryNamespace& other) const = default;
     virtual constexpr bool operator !=(const RegistryNamespace& other) const = default;
 
-    RegistryNamespace(string name):
+    constexpr RegistryNamespace(string name):
         name(name)
     {}
     virtual ~RegistryNamespace() = default;
@@ -22,7 +22,7 @@ class ModMemberNamespace : public RegistryNamespace {
     public:
     string mod_name;
 
-    ModMemberNamespace(string mod_name, string name):
+    constexpr ModMemberNamespace(string mod_name, string name):
         RegistryNamespace(name),
         mod_name(mod_name)
     {}
@@ -36,7 +36,7 @@ class RegistryId {
     constexpr bool operator ==(const RegistryId& other) const = default;
     constexpr bool operator !=(const RegistryId& other) const = default;
 
-    RegistryId(u32 id):
+    constexpr RegistryId(u32 id):
         id(id)
     {}
     virtual ~RegistryId() = default;
@@ -46,7 +46,7 @@ class ModMemberId : public RegistryId {
     public:
     u32 mod_id;
 
-    ModMemberId(u32 mod_id, u32 id):
+    constexpr ModMemberId(u32 mod_id, u32 id):
         RegistryId(id),
         mod_id(mod_id)
     {}
@@ -80,4 +80,7 @@ namespace std {
             return std::hash<u32>()(x.id) ^ (std::hash<u32>()(x.mod_id) << 1);
         }
     };
+}
+
+namespace registry_literals {
 }
