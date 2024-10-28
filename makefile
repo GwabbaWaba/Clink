@@ -1,12 +1,11 @@
-all: ./bin ./base_mods ./mods out base_mods mods
+BIN_DIR=./bin
+MODS_DIR=./mods
+BASE_MODS_DIR=./base_mods
 
-./bin:
-	mkdir -p ./bin
-./mods:
-	mkdir -p ./mods
-./base_mods:
-	mkdir -p ./base_mods
-
+all: directories out base_mods mods
+directories: $(BIN_DIR) $(MODS_DIR) $(BASE_MODS_DIR)
+$(BIN_DIR) $(MODS_DIR) $(BASE_MODS_DIR):
+	@if [ ! -d $@ ]; then mkdir -p $@; fi;
 
 test_mod=mods/test.so
 clink=base_mods/clink.so
@@ -33,3 +32,5 @@ $(test_mod): makefile $(wildcard mods_src/test/*) $(wildcard src/*.h*)
 $(ZIG_O): makefile $(wildcard src/*.zig)
 	zig build-obj src/zig.zig -lc++ -I. -femit-bin=$(ZIG_O)
 	rm bin/zig.o.o
+
+.PHONY: all mods base_mods

@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
                 << event_name.mod_name
                 << "::"
                 << event_name.name
-                << std::endl;
+                << debug::endl;
             return event_id.value();
         },
         .getEvent = [](ModMemberId& event_id) -> std::vector<VoidFn>& {
@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
                 << event_name.mod_name
                 << "::"
                 << event_name.name
-                << std::endl;
+                << debug::endl;
         },
     };
     mod_register.loadMods("./base_mods", &api);

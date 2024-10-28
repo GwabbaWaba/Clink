@@ -17,12 +17,14 @@ using std::string;
 namespace debug {
     #if !defined(DEBUG)
     // acts as a /dev/null for logging in release builds
+    // doesn't consume std::endl by design
     struct NullStream {
         template <typename T>
         NullStream& operator<<(const T&) { return *this; }
-        NullStream& operator<<(std::ostream& (*)(std::ostream&)) { return *this; } // For manipulators like std::endl
     };
     #endif
+    // prefer to use this over std::endl
+    const char endl = '\n';
 
     inline
     #if defined(DEBUG)
@@ -91,6 +93,7 @@ namespace debug {
             "\n";
         #endif
     }
+
 }
 
 #define PLACEHOLDER_TYPE void()

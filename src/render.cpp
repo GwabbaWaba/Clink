@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
@@ -14,6 +12,9 @@ vector<LightInfo> lights = vector<LightInfo>();
 // Move a light and mark it as dirty so that we update it's mask next frame
 void moveLight(LightInfo& light, float x, float y)
 {
+    debug::print_stream()
+        << "message"
+        << debug::endl;
     light.dirty = true;
     light.position.x = x; 
     light.position.y = y;
