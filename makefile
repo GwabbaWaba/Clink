@@ -19,7 +19,7 @@ LIBS  =-ldl -lraylib -lm
 
 ZIG_O =bin/zig.o
 DEFINES =
-BUILD_MODE =-DDEBUG
+BUILD_MODE =-DDEBUG -DPRETTY_LOGS
 
 out: makefile $(ZIG_O) $(wildcard src/*) $(base_mods)
 	zig c++ $(CPP_FLAGS) $(BUILD_MODE) $(DEFINES) src/*.c?? $(ZIG_O) $(PKG) $(LIBS) -o out

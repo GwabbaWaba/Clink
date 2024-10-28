@@ -37,11 +37,21 @@ namespace debug {
     ) {
         #if defined(DEBUG)
         std::clog
-            << "\e[0;36m"
-            << "debug::print_stream from "
-            << callsite.file_name() << '('
-            << callsite.line() << ':'
-            << callsite.column() << "):\e[0m ";
+            <<
+            #if defined(PRETTY_LOGS)
+            "\e[0;36m"
+            #endif
+            "debug::print_stream from "
+            << callsite.file_name()
+            << '('
+            << callsite.line()
+            << ':'
+            << callsite.column()
+            << "): "
+            #if defined(PRETTY_LOGS)
+            "\e[0m"
+            #endif
+            ;
         return std::clog;
         #else
         static NullStream null_stream;
@@ -58,16 +68,27 @@ namespace debug {
     ) {
         #if defined(DEBUG)
         std::clog
-            << "\e[0;36m"
-            << "debug::println from "
-            << callsite.file_name() << '('
-            << callsite.line() << ':'
-            << callsite.column() << ")"
+            <<
+            #if defined(PRETTY_LOGS)
+            "\e[0;36m"
+            #endif
+            "debug::println from "
+            << callsite.file_name()
+            << '('
+            << callsite.line()
+            << ':'
+            << callsite.column()
+            << ")"
+            #if defined(PRETTY_LOGS)
             << std::endl
-            << "\e[0;33m"
+            "\e[0;33m"
+            #endif
             << val
-            << "\e[0m"
-            << std::endl;
+            <<
+            #if defined(PRETTY_LOGS)
+            "\e[0m"
+            #endif
+            "\n";
         #endif
     }
 }
