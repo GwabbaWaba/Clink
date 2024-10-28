@@ -14,8 +14,8 @@
 #include <chrono>
 #include <filesystem>
 #include <iostream>
-#include <sstream>
 
+#include "clinkinterface.hpp"
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
@@ -29,10 +29,10 @@
 #include "main.hpp"
 #include "render.hpp"
 #include "exceptions.hpp"
-#include "player.hpp"
-#include "world.hpp"
+#include "registry.hpp"
 
 namespace rl = raylib;
+using std::optional;
 using namespace chrono_literals;
 
 // #include "zig.h"
@@ -41,6 +41,9 @@ ModRegister mod_register = ModRegister();
 EventRegister event_register = EventRegister();
 
 int main(int argc, char* argv[]) {
+    // disable most logs
+    rl::SetTraceLogLevel(rl::LOG_WARNING); 
+
     rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
     rl::InitWindow(
         rl::GetMonitorWidth(rl::GetCurrentMonitor()),
@@ -49,43 +52,55 @@ int main(int argc, char* argv[]) {
     );
     rl::SetTargetFPS(60);
     
-    auto api = ClinkAPI {
-        .registerEvent = [](string event_name) {
-            auto& events = event_register.events;
-            if(events.find(event_name) == events.end()) {
-                events[event_name] = vector<VoidFn>();
-            } else {
-                std::cerr
-                    << "Duplicate event registry, errors may occur: "
-                    << event_name
-                    << std::endl;
+    ClinkAPI api;
+    api = ClinkAPI {
+        // TODO actually generate fresh ids
+        .registerEvent = [&api](ModMemberNamespace event_name) {
+            auto event_id = api.getEventIdByName(event_name);
+            if(event_id == std::nullopt) {
+                auto mod_id = mod_register.mod_ids.at(RegistryNamespace(event_name.mod_name));
+                return event_register.registerEvent(event_name, mod_id);
             }
-        },
-        .getEvent = [](string event_name) {
-            auto& events = event_register.events;
-            if(events.find(event_name) != events.end())
-                return events[event_name];
 
-            std::stringstream err_msg_stream = std::stringstream();
-            err_msg_stream
-                << "Access of unregistered event: "
-                << event_name;
-            
-            throw clink_exceptions::EventException(
-                clink_exceptions::EventExceptionType::invalid_access,
-                err_msg_stream.str()
-            );
+            std::cerr
+                << "Duplicate event registry, errors may occur: "
+                << event_name.mod_name
+                << "::"
+                << event_name.name
+                << std::endl;
+            return event_id.value();
         },
-        .subscribeToEvent = [](string eventName, VoidFn callback) {
-            auto event = &event_register.events[eventName];
-            event->push_back(callback);
-            std::clog << "Subscribing " << (void*)callback << " to " << eventName << std::endl;
+        .getEvent = [](ModMemberId& event_id) -> std::vector<VoidFn>& {
+            return event_register.events.at(event_id);
+        },
+        .getEventByName = [](ModMemberNamespace event_name) -> std::vector<VoidFn>& {
+            return event_register.events.at(event_register.event_ids.at(event_name));
+        },
+        .getEventIdByName = [](ModMemberNamespace event_name) -> optional<ModMemberId> {
+            auto events = event_register.event_ids;
+            if(events.find(event_name) == events.end())
+                return {};
+
+            return event_register.event_ids.at(event_name);
+        },
+        .subscribeToEvent = [&api](ModMemberNamespace event_name, VoidFn callback) {
+            auto& event = api.getEventByName(event_name);
+            event.push_back(callback);
+            std::clog
+                << "Subscribing "
+                << (void*)callback
+                << " to "
+                << event_name.mod_name
+                << "::"
+                << event_name.name
+                << std::endl;
         },
     };
-    api.registerEvent("clink::update");
-    api.registerEvent("clink::draw");
+    mod_register.loadMods("./base_mods", &api);
 
-    api.registerEvent("clink::key");
+    auto update_event_id = api.registerEvent(ModMemberNamespace("clink", "update"));
+    auto draw_event_id = api.registerEvent(ModMemberNamespace("clink", "draw"));
+    auto key_press_event_id = api.registerEvent(ModMemberNamespace("clink", "key_press"));
 
     mod_register.loadMods("./mods", &api);
 
@@ -107,13 +122,11 @@ int main(int argc, char* argv[]) {
 
     bool show_lines = false;
 
-    auto last_time = std::chrono::steady_clock::now();
     f32 dt = 0;
-
+    debug::println("made it passed setup");
     while(!rl::WindowShouldClose()) {
-        auto current_time = std::chrono::steady_clock::now();
-        dt = (current_time - last_time) / 1s;
-        for(auto callback : event_register.events["clink::update"]) {
+        dt = rl::GetFrameTime();
+        for(auto callback : api.getEvent(update_event_id)) {
             as(fn(void, f32), callback)(dt);
         }
 
@@ -225,12 +238,10 @@ int main(int argc, char* argv[]) {
             }
 
             
-            for(auto callback : event_register.events["clink::draw"]) {
+            for(auto callback : api.getEvent(draw_event_id)) {
                 as(fn(void), callback)();
             }
         rl::EndDrawing();
-
-        last_time = std::chrono::steady_clock::now();
     }
 
     return 0;

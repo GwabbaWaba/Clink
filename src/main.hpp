@@ -11,6 +11,7 @@ using std::string;
 
 #define as(ty, expr) ((ty)expr)
 #define fn(ret, args...) ret(*)(args)
+#define ABSTRACT 0
 
 namespace debug {
     template<typename T>
@@ -26,9 +27,5 @@ namespace debug {
         #endif
     }
 }
-#define DECL_ENUM_ELEMENT( element ) #element
-#define BEGIN_ENUM( ENUM_NAME ) char* gs_##ENUM_NAME [] =
-#define END_ENUM( ENUM_NAME ) ; char* getString##ENUM_NAME(enum \
-        tag##ENUM_NAME index){ return gs_##ENUM_NAME [index]; }
 
 #define PLACEHOLDER_TYPE void()

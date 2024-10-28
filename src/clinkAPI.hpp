@@ -1,27 +1,43 @@
 #pragma once
 #include <string>
+#include <optional>
 #include <functional>
 
 #include "clinkinterface.hpp"
+#include "registry.hpp"
 
 using std::string;
+using std::optional;
 
 typedef void(*VoidFn)();
 #define VOID_CAST(return, args...) (VoidFnPtr)(void(*return)(args))
 
 struct ClinkAPI {
-    // void registerEvent
-    // string event_name
-    std::function<void(string)> registerEvent;
+    // registerEvent
+    // ModMemberNamespace& event_name
+    // returns ModMemberId, being the id of the registered event
+    std::function<ModMemberId(ModMemberNamespace)> registerEvent;
 
-    // const std::vector<VoidFn> getEvent
-    // string event_name
-    std::function<const std::vector<VoidFn>&(string)> getEvent;
+    // getEvent
+    // ModMemberId& event_id
+    // returns std::vector<VoidFn>const&, being the list of callbacks registered to the event
+    std::function<std::vector<VoidFn>&(ModMemberId&)> getEvent;
 
-    // void subscribeToEvent
-    // string event_name
+    // getEventByName
+    // ModMemberNamespace& event_name
+    // returns std::vector<VoidFn>const&, being the list of callbacks registered to the event
+    std::function<std::vector<VoidFn>&(ModMemberNamespace)> getEventByName;
+
+    // getEventIdByName
+    // ModMemberNamespace& event_name
+    // returns optional<ModMemberId>
+    std::function<optional<ModMemberId>(ModMemberNamespace)> getEventIdByName;
+
+    // subscribeToEvent
+    // ModMemberNamespace& event_name
     // VoidFn callback
-    std::function<void(string, VoidFn)> subscribeToEvent;
+    // returns void
+    std::function<void(ModMemberNamespace, VoidFn)> subscribeToEvent;
 };
 
 union UnicodeChar {

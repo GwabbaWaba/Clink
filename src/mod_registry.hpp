@@ -2,6 +2,7 @@
 
 #include "bitsize_ints.h"
 #include "clinkAPI.hpp"
+#include "registry.hpp"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -24,11 +25,15 @@ struct ModData {
 };
 
 class ModRegister {
+    private:
+    u32 next_id = 0;
     public:
-    std::unordered_map<string, ModData*> mods;
+    std::unordered_map<RegistryNamespace, RegistryId> mod_ids;
+    std::unordered_map<RegistryId, ModData*> mods;
 
     ModRegister();
     ~ModRegister();
     ModError loadMod(fs::path mod_path, ClinkAPI* api);
     ModError loadMods(const fs::path& mod_dir_path, ClinkAPI* api);
+    void registerMod(Mod* mod, ModData* mod_data);
 };

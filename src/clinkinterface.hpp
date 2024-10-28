@@ -11,7 +11,7 @@
 
 #define clink extern "C" MOD_API
 
-#define ABSTRACT 0;
+#include "main.hpp"
 
 extern "C" {
     class Mod {
@@ -23,10 +23,13 @@ extern "C" {
     };
 
     struct ModInfo {
-        std::string name;
+        std::string name = "";
+        std::string author = "";
+        std::string version = "";
     };
 }
-// Factory function to create instances of Mod
+
+// mods should overwrite these
 clink Mod* createMod();
 clink ModInfo* getModInfo();
 

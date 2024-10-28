@@ -4,7 +4,9 @@
 
 #include "mod_registry.hpp"
 #include "clinkAPI.hpp"
+#include "clinkinterface.hpp"
 #include "main.hpp"
+#include "registry.hpp"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -21,7 +23,8 @@ ModData::~ModData() {
 }
 
 ModRegister::ModRegister():
-    mods(std::unordered_map<string, ModData*>())
+    mod_ids(std::unordered_map<RegistryNamespace, RegistryId>()),
+    mods(std::unordered_map<RegistryId, ModData*>())
 {}
 ModRegister::~ModRegister() {
     for(auto &[name, data] : mods) {
@@ -57,7 +60,7 @@ ModError ModRegister::loadMod(fs::path mod_path, ClinkAPI* api) {
             initializeAPI(api);
         }
         mod->initialize();
-        mods[getModInfo()->name] = new ModData(mod, getModInfo, mod_handle);
+        this->registerMod(mod, new ModData(mod, getModInfo, mod_handle));
         return ModError::OK;
     }
 
@@ -74,4 +77,12 @@ ModError ModRegister::loadMods(const fs::path& mod_dir_path, ClinkAPI* api) {
         }
     }
     return ModError::OK;
+}
+
+void ModRegister::registerMod(Mod* mod, ModData* mod_data) {
+    auto id = RegistryId(this->next_id);
+    this->next_id++;
+    this->mod_ids.emplace(RegistryNamespace(mod_data->getModInfo()->name), id);
+    this->mods.emplace(id, mod_data);
+    
 }
