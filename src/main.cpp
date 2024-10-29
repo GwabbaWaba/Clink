@@ -11,11 +11,10 @@
  *  using std::string;
  */
 
-#include <chrono>
 #include <filesystem>
-#include <iostream>
 
 #include "clinkinterface.hpp"
+#include "player.hpp"
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
@@ -32,8 +31,8 @@
 #include "registry.hpp"
 
 namespace rl = raylib;
-using std::optional;
 using namespace chrono_literals;
+using namespace registry_literals;
 
 // #include "zig.h"
 
@@ -41,66 +40,38 @@ ModRegister mod_register = ModRegister();
 EventRegister event_register = EventRegister();
 
 int main(int argc, char* argv[]) {
+    #if defined(DEBUG)
     // disable most logs
-    rl::SetTraceLogLevel(rl::LOG_WARNING); 
+    rl::SetTraceLogLevel(rl::LOG_WARNING);
+    #else
+    // release gets less logs
+    rl::SetTraceLogLevel(rl::LOG_ERROR);
+    #endif
 
-    rl::SetConfigFlags(rl::FLAG_WINDOW_RESIZABLE);
+    rl::SetWindowState(rl::FLAG_WINDOW_RESIZABLE);
     rl::InitWindow(
         rl::GetMonitorWidth(rl::GetCurrentMonitor()),
         rl::GetMonitorHeight(rl::GetCurrentMonitor()),
         "Clink"
     );
     rl::SetTargetFPS(60);
+
+    Light& player_light = addLight(0, 0, 600);
+    Player player = Player(&player_light);
+    debug::println(&player);
     
-    ClinkAPI api;
-    api = ClinkAPI {
-        // TODO actually generate fresh ids
-        .registerEvent = [&api](ModMemberNamespace event_name) {
-            auto event_id = api.getEventIdByName(event_name);
-            if(event_id == std::nullopt) {
-                auto mod_id = mod_register.mod_ids.at(RegistryNamespace(event_name.mod_name));
-                return event_register.registerEvent(event_name, mod_id);
-            }
+    PlayerAPI player_api = PlayerAPI(player);
+    ClinkAPI api = ClinkAPI(&player_api, event_register, mod_register);
+    // load in engine mods
+    // brings the clink namespace into the registry's scope
+    auto base_mod_load_result = mod_register.loadMods("./base_mods", &api);
+    // if base mods fail it will error later anyway
+    if(base_mod_load_result != ModError::OK)
+        exit(-1);
 
-            std::cerr
-                << "Duplicate event registry, errors may occur: "
-                << event_name.mod_name
-                << "::"
-                << event_name.name
-                << debug::endl;
-            return event_id.value();
-        },
-        .getEvent = [](ModMemberId& event_id) -> std::vector<VoidFn>& {
-            return event_register.events.at(event_id);
-        },
-        .getEventByName = [](ModMemberNamespace event_name) -> std::vector<VoidFn>& {
-            return event_register.events.at(event_register.event_ids.at(event_name));
-        },
-        .getEventIdByName = [](ModMemberNamespace event_name) -> optional<ModMemberId> {
-            auto events = event_register.event_ids;
-            if(events.find(event_name) == events.end())
-                return {};
-
-            return event_register.event_ids.at(event_name);
-        },
-        .subscribeToEvent = [&api](ModMemberNamespace event_name, VoidFn callback) {
-            auto& event = api.getEventByName(event_name);
-            event.push_back(callback);
-            debug::print_stream()
-                << "Subscribing "
-                << (void*)callback
-                << " to "
-                << event_name.mod_name
-                << "::"
-                << event_name.name
-                << debug::endl;
-        },
-    };
-    mod_register.loadMods("./base_mods", &api);
-
-    auto update_event_id = api.registerEvent(ModMemberNamespace("clink", "update"));
-    auto draw_event_id = api.registerEvent(ModMemberNamespace("clink", "draw"));
-    auto key_press_event_id = api.registerEvent(ModMemberNamespace("clink", "key_press"));
+    // defined by clink base mod
+    auto update_event_id = api.getEventIdByName("clink::update"_ModMember).value();
+    auto draw_event_id = api.getEventIdByName("clink::draw"_ModMember).value();
 
     mod_register.loadMods("./mods", &api);
 
@@ -141,12 +112,11 @@ int main(int argc, char* argv[]) {
         // Update the lights and keep track if any were dirty so we know if we need to update the master light mask
         bool dirty_lights = false;
         for(auto& light: lights) {
-            dirty_lights = updateLight(light, boxes) || dirty_lights;
+            dirty_lights = light.update(boxes) || dirty_lights;
         }
 
         // Update the light mask
-        if (dirty_lights)
-        {
+        if (dirty_lights) {
             // Build up the light mask
             rl::BeginTextureMode(light_mask);
             
@@ -187,6 +157,21 @@ int main(int argc, char* argv[]) {
                 rl::WHITE
             );
             
+            // draw the boxes
+            for (auto& box : boxes)
+            {
+                if (rl::CheckCollisionRecs(box,lights[0].bounds))
+                    rl::DrawRectangleRec(box, rl::GRAY);
+
+                rl::DrawRectangleLines(
+                    as(int, box.x),
+                    as(int, box.y),
+                    as(int, box.width),
+                    as(int, box.height),
+                    rl::BLACK
+                );
+            }
+
             // Overlay the shadows from all the lights
             rl::DrawTextureRec(
                 light_mask.texture,

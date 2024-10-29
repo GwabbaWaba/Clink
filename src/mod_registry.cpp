@@ -59,9 +59,11 @@ ModError ModRegister::loadMod(fs::path mod_path, ClinkAPI* api) {
         if (initializeAPI) {
             initializeAPI(api);
         }
-        mod->initialize();
-        this->registerMod(mod, new ModData(mod, getModInfo, mod_handle));
-        return ModError::OK;
+        auto registry_result = this->registerMod(mod, new ModData(mod, getModInfo, mod_handle));
+        if(registry_result == ModError::OK)
+            mod->initialize();
+
+        return registry_result;
     }
 
     dlclose(mod_handle);
@@ -79,10 +81,14 @@ ModError ModRegister::loadMods(const fs::path& mod_dir_path, ClinkAPI* api) {
     return ModError::OK;
 }
 
-void ModRegister::registerMod(Mod* mod, ModData* mod_data) {
+ModError ModRegister::registerMod(Mod* mod, ModData* mod_data) {
+    auto mod_info = mod_data->getModInfo();
+    if(mod_info->name.contains(":"))
+        return ModError::INVALID_MOD_NAME;
+
     auto id = RegistryId(this->next_id);
     this->next_id++;
-    this->mod_ids.emplace(RegistryNamespace(mod_data->getModInfo()->name), id);
+    this->mod_ids.emplace(RegistryNamespace(mod_info->name), id);
     this->mods.emplace(id, mod_data);
-    
+    return ModError::OK;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include "main.hpp"
 #include "bitsize_ints.h"
 using std::string;
@@ -83,4 +84,23 @@ namespace std {
 }
 
 namespace registry_literals {
+    constexpr ModMemberNamespace operator"" _ModMember(const char* literal, usize len) {
+        std::vector<char> left = std::vector<char>(), right = std::vector<char>();
+        usize colon_index = 0;
+        for(usize i = 0; i < len; i++) {
+            if(literal[i] == ':') {
+                colon_index = i;
+                break;
+            }
+            left.push_back(literal[i]);
+        }
+        for(usize i = colon_index + 2; i < len; i++) {
+            right.push_back(literal[i]);
+        }
+
+        return ModMemberNamespace(
+        string(left.begin(), left.end()),
+        string(right.begin(), right.end())
+        );
+    }
 }

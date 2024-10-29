@@ -1,13 +1,18 @@
 #pragma once
 
-
 #include <string>
 #include <math.h>
 
 using std::string;
 
+// the same as @as in zig
+// it's personally more readable
 #define as(ty, expr) ((ty)expr)
+// clearer syntax for function ptr types
 #define fn(ret, args...) ret(*)(args)
+// makes it easier to pass a pair to a function
+#define pairToParts(pair) pair.first, pair.second
+// clearer purpose
 #define ABSTRACT 0
 
 #if defined(DEBUG)

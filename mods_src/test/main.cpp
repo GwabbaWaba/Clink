@@ -1,16 +1,13 @@
-#include <iostream>
+#include "../../src/raylib.h"
+
 #include "../../src/clinkinterface.hpp"
 #include "../../src/clinkAPI.hpp"
 #include "../../src/registry.hpp"
 #include "../../src/main.hpp"
 #include "../../src/bitsize_ints.h"
 
-#include <math.h>
-namespace raylib {
-    #include <raylib.h>
-    #include <raymath.h>
-}
-using namespace std;
+namespace rl = raylib;
+using namespace registry_literals;
 
 ClinkAPI* clinkAPI;
 clink void initializeAPI(ClinkAPI* api) {
@@ -21,19 +18,13 @@ void update(f32 dt) {
 }
 
 void draw() {
-    raylib::DrawText("Hi!", 190, 200, 40, raylib::WHITE);
-}
-
-void key(UnicodeChar codepoint) {
-    cout << codepoint.bytes << endl;
 }
 
 class TestMod: public Mod {
 public:
     void initialize() override {
-        clinkAPI->subscribeToEvent(ModMemberNamespace("clink", "update"), (VoidFn)update);
-        clinkAPI->subscribeToEvent(ModMemberNamespace("clink", "draw"), (VoidFn)draw);
-        clinkAPI->subscribeToEvent(ModMemberNamespace("clink", "key_press"), (VoidFn)key);
+        clinkAPI->subscribeToEvent("clink::update"_ModMember, (VoidFn)update);
+        clinkAPI->subscribeToEvent("clink::draw"_ModMember, (VoidFn)draw);
 
         debug::println("TestMod initialized!");
     }

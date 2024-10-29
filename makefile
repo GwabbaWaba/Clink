@@ -12,7 +12,7 @@ clink=base_mods/clink.so
 mods: $(test_mod)
 base_mods: $(clink)
 
-CPP_FLAGS =-std=c++20
+CPP_FLAGS =-std=c++23
 PKG   =
 LIBS  =-ldl -lraylib -lm
 

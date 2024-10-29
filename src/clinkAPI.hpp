@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "clinkinterface.hpp"
+#include "player.hpp"
 #include "registry.hpp"
 
 using std::string;
@@ -12,7 +13,15 @@ using std::optional;
 typedef void(*VoidFn)();
 #define VOID_CAST(return, args...) (VoidFnPtr)(void(*return)(args))
 
+class EventRegister;
+class ModRegister;
 struct ClinkAPI {
+    ClinkAPI(PlayerAPI* player_API, EventRegister& event_register, ModRegister& mod_register);
+
+    // getPlayerAPI
+    // returns PlayerAPI*
+    std::function<PlayerAPI*()> getPlayerAPI;
+
     // registerEvent
     // ModMemberNamespace& event_name
     // returns ModMemberId, being the id of the registered event

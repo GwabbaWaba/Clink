@@ -16,7 +16,7 @@ struct ShadowGeometry {
 };
 using namespace std;
 
-struct LightInfo {
+struct Light {
     bool active;                // Is this light slot active?
     bool dirty;                 // Does this light need to be updated?
     bool valid;                 // Is this light in a valid position?
@@ -27,11 +27,11 @@ struct LightInfo {
     raylib::Rectangle bounds;           // A cached rectangle of the light bounds to help with culling
 
     vector<ShadowGeometry> shadows;
+    bool update(vector<raylib::Rectangle>& boxes);
+    void move(float x, float y);
 };
 
-extern vector<LightInfo> lights;
+extern vector<Light> lights;
 
-void addLight(float x, float y, float radius);
-bool updateLight(LightInfo& light, vector<raylib::Rectangle>& boxes);
-void moveLight(LightInfo& light, float x, float y);
+Light& addLight(float x, float y, float radius);
 void setupBoxes(vector<raylib::Rectangle>& boxes, int count);
