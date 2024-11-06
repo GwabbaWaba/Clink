@@ -6,11 +6,12 @@ namespace rl = raylib;
 
 class Player {
     private:
-    Light* light;
+    std::shared_ptr<Light> light;
     public:
     rl::Vector2 pos;
 
-    Player(Light* light):
+    Player(std::shared_ptr<Light> light):
+        pos(rl::Vector2{0, 0}),
         light(light)
     {}
 
@@ -24,4 +25,8 @@ struct PlayerAPI {
     std::function<void(float x)> moveX;
     std::function<void(float y)> moveY;
     std::function<void(float x, float y)> moveTo;
+
+    std::function<float()> getX;
+    std::function<float()> getY;
+    std::function<rl::Vector2()> getPos;
 };

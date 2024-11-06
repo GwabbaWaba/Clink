@@ -31,13 +31,10 @@
 #include "registry.hpp"
 
 namespace rl = raylib;
-using namespace chrono_literals;
+using namespace std::chrono_literals;
 using namespace registry_literals;
 
 // #include "zig.h"
-
-ModRegister mod_register = ModRegister();
-EventRegister event_register = EventRegister();
 
 int main(int argc, char* argv[]) {
     #if defined(DEBUG)
@@ -56,9 +53,12 @@ int main(int argc, char* argv[]) {
     );
     rl::SetTargetFPS(60);
 
-    Light& player_light = addLight(0, 0, 600);
-    Player player = Player(&player_light);
-    debug::println(&player);
+    ModRegister mod_register = ModRegister();
+    EventRegister event_register = EventRegister();
+
+    auto light_renderer = LightRenderer();
+    auto player_light = light_renderer.addLight(0.0, 0.0, 600);
+    Player player = Player(player_light);
     
     PlayerAPI player_api = PlayerAPI(player);
     ClinkAPI api = ClinkAPI(&player_api, event_register, mod_register);
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
     rl::Texture2D background_texture = LoadTextureFromImage(img);
     rl::UnloadImage(img);
 
-    vector<rl::Rectangle> boxes = vector<rl::Rectangle>();
+    std::vector<rl::Rectangle> boxes = std::vector<rl::Rectangle>();
     setupBoxes(boxes, 20);
 
     rl::RenderTexture light_mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight());
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 
         // Make a new light
         if (rl::IsMouseButtonPressed(rl::MOUSE_BUTTON_RIGHT)) {
-            addLight(rl::GetMousePosition().x, rl::GetMousePosition().y, 200);
+            light_renderer.addLight(rl::GetMousePosition().x, rl::GetMousePosition().y, 200);
         }
 
         // Toggle debug info

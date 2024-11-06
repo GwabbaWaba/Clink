@@ -7,7 +7,7 @@
 
 namespace rl = raylib;
 
-vector<Light> lights = vector<Light>();
+std::vector<Light> lights = std::vector<Light>();
 
 // Move a light and mark it as dirty so that we update it's mask next frame
 void Light::move(float x, float y)
@@ -17,14 +17,14 @@ void Light::move(float x, float y)
     this->position.y = y;
 
     // update the cached bounds
-    this->bounds.x = x - this->outerRadius;
-    this->bounds.y = y - this->outerRadius;
+    this->bounds.x = x - this->outer_radius;
+    this->bounds.y = y - this->outer_radius;
 }
 
 // Compute a shadow volume for the edge
 // It takes the edge and projects it back by the light radius and turns it into a quad
 void computeShadowVolumeForEdge(Light* light, rl::Vector2 sp, rl::Vector2 ep) {
-    float extension = light->outerRadius*2;
+    float extension = light->outer_radius*2;
 
     rl::Vector2 spVector = Vector2Normalize(Vector2Subtract(sp, light->position));
     rl::Vector2 spProjection = Vector2Add(sp, Vector2Scale(spVector, extension));
@@ -43,9 +43,9 @@ void computeShadowVolumeForEdge(Light* light, rl::Vector2 sp, rl::Vector2 ep) {
 }
 
 // Draw the light and shadows to the mask for a light
-void drawLightMask(Light& light) {
+void Light::drawLightMask() {
     // Use the light mask
-    rl::BeginTextureMode(light.mask);
+    rl::BeginTextureMode(this->mask);
 
         rl::ClearBackground(rl::WHITE);
 
@@ -54,11 +54,11 @@ void drawLightMask(Light& light) {
         rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
         // If we are valid, then draw the light radius to the alpha mask
-        if (light.valid) {
+        if (this->valid) {
             DrawCircleGradient(
-                as(int, light.position.x),
-                as(int, light.position.y),
-                light.outerRadius,
+                as(int, this->position.x),
+                as(int, this->position.y),
+                this->outer_radius,
                 ColorAlpha(rl::WHITE, 0),
                 rl::WHITE
             );
@@ -72,7 +72,7 @@ void drawLightMask(Light& light) {
         rl::rlSetBlendMode(rl::BLEND_CUSTOM);
 
         // Draw the shadows to the alpha mask
-        for (auto& shadow : light.shadows) {
+        for (auto& shadow : this->shadows) {
             rl::DrawTriangleFan(shadow.vertices, 4, rl::WHITE);
         }
 
@@ -85,30 +85,26 @@ void drawLightMask(Light& light) {
 }
 
 
-// Setup a light
-Light& addLight(float x, float y, float radius)
-{
-    Light light = {
-        .active = true,
-        .valid = false, // The light must prove it is valid
-        .mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight()),
-        .outerRadius = radius,
-        .bounds = {
-            .width = radius*2,
-            .height = radius*2
-        }
+std::shared_ptr<Light> LightRenderer::addLight(float x, float y, float radius) {
+    auto mask = rl::LoadRenderTexture(rl::GetScreenWidth(), rl::GetScreenHeight());
+    auto light = std::make_shared<Light>();
+    light->outer_radius = radius;
+    light->bounds = rl::Rectangle {
+        .width = radius*2,
+        .height = radius*2
     };
-    light.move(x, y);
-    // Force the render texture to have something in it
-    drawLightMask(light);
+    light->mask = mask;
 
-    lights.push_back(light);
+    light->move(x, y);
+    // Force the render texture to have something in it
+    light->drawLightMask();
+
+    this->lights.push_back(light);
     return lights.back();
 }
 
 // See if a light needs to update it's mask
-bool Light::update(vector<rl::Rectangle>& boxes)
-{
+bool Light::update(std::vector<rl::Rectangle>& boxes) {
     if (!this->active || !this->dirty) return false;
 
     this->dirty = false;
@@ -155,13 +151,13 @@ bool Light::update(vector<rl::Rectangle>& boxes)
 
     this->valid = true;
 
-    drawLightMask(*this);
+    this->drawLightMask();
 
     return true;
 }
 
 // Set up some boxes
-void setupBoxes(vector<rl::Rectangle>& boxes, int count)
+void setupBoxes(std::vector<rl::Rectangle>& boxes, int count)
 {
     for (int i = 0; i < count; i++)
     {

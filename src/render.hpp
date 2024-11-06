@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "raylib.h"
 
-#include "bitsize_ints.h"
+namespace rl = raylib;
 
 // Custom Blend Modes
 #define RLGL_SRC_ALPHA 0x000302
@@ -12,26 +13,37 @@
 #define RLGL_MAX       0x008008
 
 struct ShadowGeometry {
-    raylib::Vector2 vertices[4];
+    rl::Vector2 vertices[4];
 };
-using namespace std;
 
 struct Light {
-    bool active;                // Is this light slot active?
-    bool dirty;                 // Does this light need to be updated?
-    bool valid;                 // Is this light in a valid position?
+    bool active = true;             // Is this light slot active?
+    bool dirty = true;              // Does this light need to be updated?
+    bool valid = false;             // Is this light in a valid position?
 
-    raylib::Vector2 position;           // Light position
-    raylib::RenderTexture mask;         // Alpha mask for the light
-    f32 outerRadius;                    // The distance the light touches
-    raylib::Rectangle bounds;           // A cached rectangle of the light bounds to help with culling
+    rl::Vector2 position;           // Light position
+    rl::RenderTexture mask;         // Alpha mask for the light
+    float outer_radius;             // The distance the light touches
+    rl::Rectangle bounds;           // A cached rectangle of the light bounds to help with culling
 
-    vector<ShadowGeometry> shadows;
-    bool update(vector<raylib::Rectangle>& boxes);
+    Light() = default;
+
+    std::vector<ShadowGeometry> shadows;
+    bool update(std::vector<rl::Rectangle>& boxes);
     void move(float x, float y);
+    void drawLightMask();
 };
 
-extern vector<Light> lights;
+class LightRenderer {
+    public:
+    std::vector<std::shared_ptr<Light>> lights;
 
-Light& addLight(float x, float y, float radius);
-void setupBoxes(vector<raylib::Rectangle>& boxes, int count);
+    LightRenderer() = default;
+    ~LightRenderer() = default;
+
+    std::shared_ptr<Light> addLight(float x, float y, float radius);
+};
+
+extern std::vector<Light> lights;
+
+void setupBoxes(std::vector<rl::Rectangle>& boxes, int count);
